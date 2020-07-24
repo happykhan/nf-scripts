@@ -1,0 +1,91 @@
+BootStrap: yum
+OSVersion: 7
+MirrorURL: http://yum-repos.hpccluster/centos/7/os/$basearch/
+Include: yum
+UpdateURL: http://yum-repos.hpccluster/centos/7/updates/$basearch/
+ 
+ 
+%environment
+    source /opt/software/conda/bin/activate /opt/software/conda_env
+    PATH=/usr/local/bin:$PATH
+ 
+%post
+    yum -y install epel-release libxml2-devel
+    yum -y install wget bzip2 tar gzip
+    yum -y groupinstall "Development Tools"
+    yum -y install readline-devel zlib-devel libX11-devel libX11 libXt-devel bzip2-devel xz-devel pcre-devel libcurl-devel cmake perl-Time-Piece cpan perl-App-cpanminus bwa which java-1.8.0-openjdk-devel openssl-devel
+
+    echo 'export LC_ALL=en_GB.utf8' >> $SINGULARITY_ENVIRONMENT
+    echo 'export LANG=en_GB.utf8' >> $SINGULARITY_ENVIRONMENT
+
+    mkdir -p /opt/software
+    export INST_DIR=/opt/software
+     
+    cd /opt/software
+
+    # INSTALL FREEBAYES
+    git clone --recursive https://github.com/ekg/freebayes.git
+    cd freebayes
+    make
+    make install
+    cd ..
+
+    # INSTALL MINIMAP
+    VERSION="2.11"
+    wget https://github.com/lh3/minimap2/archive/v"$VERSION".tar.gz
+    tar xzf v"$VERSION".tar.gz
+    rm v"$VERSION".tar.gz
+    cd minimap2-*
+    make
+    export PATH=$PWD:$PATH
+    echo "export PATH=$(pwd):$PATH" >> $SINGULARITY_ENVIRONMENT
+    cd ..
+
+    # INSTALL VT
+    git clone https://github.com/atks/vt.git
+    cd vt
+    make
+    make test
+    export PATH=$PWD:$PATH
+    echo "export PATH=$(pwd):$PATH" >> $SINGULARITY_ENVIRONMENT
+    cd ..
+    
+    # INSTALL SNIPPY
+    VERSION="4.3.6"
+    wget https://github.com/tseemann/snippy/archive/v"$VERSION".tar.gz
+    tar xzf v$VERSION.tar.gz
+    rm v$VERSION.tar.gz
+    cd snippy*/bin
+    echo "export PATH=$(pwd):$PATH" >> $SINGULARITY_ENVIRONMENT
+
+    cd /opt/software
+    #------------------------------------------#
+    # INSTALL CONDA
+    #------------------------------------------#
+    curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    sh ./Miniconda3-latest-Linux-x86_64.sh -p /opt/software/conda -b -u
+    
+    /opt/software/conda/bin/conda config --add channels r
+    /opt/software/conda/bin/conda config --add channels defaults
+    /opt/software/conda/bin/conda config --add channels conda-forge
+    /opt/software/conda/bin/conda config --add channels bioconda
+    # Programs:
+    # snippy 
+    #    /opt/software/conda/bin/conda install -p /opIt/software/conda_env -y snippy
+    #    /opt/software/conda/bin/conda install -p /opt/software/conda_env -y bwa
+    #    /opt/software/conda/bin/conda install -p /opt/software/conda_env -y any2fasta
+    # gubbins
+    /opt/software/conda/bin/conda install -p /opt/software/conda_env -y gubbins
+    # fasttree 
+    /opt/software/conda/bin/conda install -p /opt/software/conda_env -y fasttree
+    # clonalframeml 
+    /opt/software/conda/bin/conda install -p /opt/software/conda_env -y clonalframeml
+    # rapidnj 
+    /opt/software/conda/bin/conda install -p /opt/software/conda_env -y rapidnj
+    # poppunk
+    /opt/software/conda/bin/conda install -p /opt/software/conda_env -y poppunk
+    # iqtree
+    /opt/software/conda/bin/conda install -p /opt/software/conda_env -y iqtree
+    # shovill
+    /opt/software/conda/bin/conda install -p /opt/software/conda_env -y iqtree
+    conda install -c conda-forge -c bioconda shovill && conda clean --all
